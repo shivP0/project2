@@ -16,6 +16,7 @@ public:
     Conversation& operator=(Conversation&& other) noexcept;
 
     void append(Message m);
+    
 
     std::size_t size() const noexcept;
 
