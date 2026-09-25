@@ -15,6 +15,7 @@
 #include "model/scripted_client.h"
 
 #include <cassert>
+#include <fstream>
 
 class TestInput : public InputSource {
 public:
@@ -315,10 +316,55 @@ void test_harness_sentinel() {
     assert(conv.size() == 7);
     assert(conv.at(6).role() == Role::Assistant);
     assert(conv.at(6).content() ==
-           "Goodbye!<|end_conversation|>");
+    "Goodbye!<|end_conversation|>");
 
     assert(output.output().find("<|end_conversation|>") ==
-           std::string::npos);
+    std::string::npos);
+}
+
+void test_transcript_round_trip() {
+    const std::string path = "test_transcript.txt";
+
+    std::ofstream file(path);
+
+    file << "role: system\n";
+    file << "Be concise.\n";
+    file << "---\n";
+    file << "role: user\n";
+    file << "hello\n";
+    file << "---\n";
+    file << "role: assistant\n";
+    file << "Hi there!\n";
+    file << "---\n";
+    file << "role: user\n";
+    file << "goodbye\n";
+    file << "---\n";
+    file << "role: assistant\n";
+    file << "Goodbye!<|end_conversation|>\n";
+
+    file.close();
+
+    ReplayModelClient replay(path);
+
+    assert(replay.system_message() == "Be concise.");
+
+    Conversation conv;
+    conv.append(Message(Role::System, "Be concise."));
+    conv.append(Message(Role::User, "hello"));
+
+    Message first = replay.generate(conv);
+
+    assert(first.role() == Role::Assistant);
+    assert(first.content() == "Hi there!");
+
+    conv.append(first);
+    conv.append(Message(Role::User, "goodbye"));
+
+    Message second = replay.generate(conv);
+
+    assert(second.role() == Role::Assistant);
+    assert(second.content() ==
+    "Goodbye!<|end_conversation|>");
 }
 
 int main() {
@@ -340,6 +386,7 @@ int main() {
 
     test_harness_turn_limit();
     test_harness_sentinel();
+    test_transcript_round_trip();
 
     return 0;
 }
