@@ -47,5 +47,98 @@ int main() {
     assert(copy.size() == 0);
     assert(copy.begin() == nullptr);
 
+
+    
+    Conversation copyAssigned;
+    copyAssigned.append(Message(Role::System, "old"));
+
+    copyAssigned = c;
+
+    assert(copyAssigned.size() == c.size());
+    assert(copyAssigned.begin() != c.begin());
+    assert(copyAssigned.at(0).content() == "hello");
+    assert(copyAssigned.at(1).content() == "hi");
+
+   
+    Conversation moveAssigned;
+    moveAssigned.append(Message(Role::System, "old"));
+
+    const Message* address_before_move = copyAssigned.begin();
+
+    moveAssigned = static_cast<Conversation&&>(copyAssigned);
+
+    assert(moveAssigned.begin() == address_before_move);
+    assert(moveAssigned.size() == 2);
+    assert(copyAssigned.size() == 0);
+    assert(copyAssigned.begin() == nullptr);
+
+   
+    bool threw = false;
+
+    try {
+        c.at(100);
+    }
+    catch (...) {
+        threw = true;
+    }
+
+    assert(threw);
+
+   
+    Conversation growing;
+
+    for (int i = 0; i < 100; i++) {
+        growing.append(Message(Role::User, "test"));
+    }
+
+    assert(growing.size() == 100);
+
+    for (std::size_t i = 0; i < growing.size(); i++) {
+        assert(growing.at(i).content() == "test");
+    }
+
+
+    SentinelScanner scanner1("<|end_conversation|>");
+
+    auto clean1 = scanner1.feed("Hello there!");
+    auto clean2 = scanner1.flush();
+
+    assert(clean1.sentinel_found == false);
+    assert(clean2.sentinel_found == false);
+    assert(clean1.safe_text + clean2.safe_text == "Hello there!");
+
+
+    SentinelScanner scanner2("<|end_conversation|>");
+
+    auto whole = scanner2.feed("Goodbye.<|end_conversation|>");
+
+    assert(whole.sentinel_found == true);
+    assert(whole.safe_text == "Goodbye.");
+
+
+    const std::string sentinel = "<|end_conversation|>";
+    const std::string text = "Goodbye." + sentinel;
+
+    for (std::size_t split = 0; split <= text.size(); split++) {
+        SentinelScanner scanner(sentinel);
+
+        auto out1 = scanner.feed(text.substr(0, split));
+        auto out2 = scanner.feed(text.substr(split));
+
+        assert(out1.sentinel_found || out2.sentinel_found);
+        assert(out1.safe_text + out2.safe_text == "Goodbye.");
+    }
+
+
+    SentinelScanner scanner3("<|end_conversation|>");
+
+    auto false1 = scanner3.feed("Hello <|end_world|>");
+    auto false2 = scanner3.flush();
+
+    assert(false1.sentinel_found == false);
+    assert(false2.sentinel_found == false);
+    assert(false1.safe_text + false2.safe_text ==
+           "Hello <|end_world|>");
+
     return 0;
 }
