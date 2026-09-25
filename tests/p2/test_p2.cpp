@@ -17,6 +17,35 @@
 #include <cassert>
 
 int main() {
-    // TODO: write your tests here.
+    Conversation c;
+
+    assert(c.size() == 0);
+    assert(c.begin() == c.end());
+
+    c.append(Message(Role::User, "hello"));
+    c.append(Message(Role::Assistant, "hi"));
+
+    assert(c.size() == 2);
+    assert(c.at(0).role() == Role::User);
+    assert(c.at(0).content() == "hello");
+    assert(c.at(1).role() == Role::Assistant);
+    assert(c.at(1).content() == "hi");
+
+    Conversation copy(c);
+
+    assert(copy.size() == c.size());
+    assert(copy.begin() != c.begin());
+    assert(copy.at(0).content() == "hello");
+    assert(copy.at(1).content() == "hi");
+
+    const Message* old_address = copy.begin();
+
+    Conversation moved(static_cast<Conversation&&>(copy));
+
+    assert(moved.begin() == old_address);
+    assert(moved.size() == 2);
+    assert(copy.size() == 0);
+    assert(copy.begin() == nullptr);
+
     return 0;
 }
