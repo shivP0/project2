@@ -1,37 +1,76 @@
-# ECE 309 — Project 2 starter code
+# ECE 309 — Project 2: The Conversation Loop
 
-This is the starter repo for Project 2 (see the spec for full details).
+This project implements the conversation memory and streaming components of a minimal LLM harness in C++.
 
-## What's provided vs. what's yours
+The project uses the provided `Harness`, `ModelClient`, `ScriptedModelClient`, and `ReplayModelClient` implementations. The main components implemented for Project 2 are the `Conversation` growable array and the `SentinelScanner`.
 
-Everything under `include/model/`, `include/harness/`, `src/model_client.cpp`,
-`src/scripted_client.cpp`, `src/replay_client.cpp`, `src/harness.cpp`, and
-`src/main.cpp` is given, working code — read it, don't modify it.
+## Features
 
-You write:
+- Stores System, User, and Assistant messages
+- Custom dynamically allocated growable array without `std::vector`
+- Rule of Five support for safe copying and moving
+- Bounds-checked conversation access
+- Amortized O(1) message insertion using 2x capacity growth
+- Streaming detection of `<|end_conversation|>`
+- Detects sentinels split across arbitrary stream chunks
+- Bounded sentinel pending buffer
+- Turn-limit and EOF handling through the provided harness
+- Scripted model responses
+- Transcript replay support
+- Assert-based test suite
 
-- `include/core/message.h` (+ optional `src/message.cpp`)
-- `include/core/conversation.h` / `src/conversation.cpp`
-- `include/core/sentinel_scanner.h` / `src/sentinel_scanner.cpp`
-- `tests/p2/test_p2.cpp`
-- `docs/design-log-p2.md`
+## Project Structure
 
-## Build and run
+- `include/core/` — Message, Conversation, and SentinelScanner headers
+- `src/` — implementations and provided harness/model source files
+- `tests/p2/` — Project 2 test suite
+- `scripts/` — example model scripts
+- `docs/` — Project 2 design log
+
+## Build
+
+From the repository root:
 
 ```bash
 cmake -S . -B build
 cmake --build build
 ```
 
-This builds two targets:
+This builds:
 
-- `./build/miniharness` — the interactive CLI
-- `./build/test_p2` — your test suite
+- `./build/miniharness` — interactive CLI
+- `./build/test_p2` — Project 2 test suite
 
-Try it once your `Conversation` and `SentinelScanner` compile:
+## Run
+
+Run the harness using the provided greeting script:
+
+```bash
+./build/miniharness --script scripts/greeting.script
+```
+
+To save the conversation transcript:
 
 ```bash
 ./build/miniharness --script scripts/greeting.script --save transcript.txt
 ```
 
-Press Ctrl-D on an empty line to end the conversation early.
+Press Ctrl-D to end the conversation through EOF.
+
+A maximum number of turns can also be specified:
+
+```bash
+./build/miniharness --script scripts/greeting.script --max-turns 2
+```
+
+## Testing
+
+Build the project and run:
+
+```bash
+./build/test_p2
+```
+
+The test suite checks Conversation behavior, deep-copy and move semantics, bounds checking, growable-array reallocation, sentinel detection across chunk boundaries, one-character streaming, large-stream behavior, harness turn limits, sentinel termination, and transcript replay.
+
+The project can also be built and tested with AddressSanitizer enabled through the provided CMake configuration.
